@@ -4,6 +4,7 @@ const COURSE_KEY = 'cs_courses'
 const USER_KEY = 'cs_user'
 
 const USERS = [
+  { id: '2500702126', password: '123456', name: '宋浩平', role: 'student' },
   { id: '2021001', password: '123456', name: '李明', role: 'student' },
   { id: '2021002', password: '123456', name: '王芳', role: 'student' },
   { id: 'admin', password: 'admin123', name: '教务处管理员', role: 'admin' }
@@ -88,6 +89,15 @@ export default {
       saveCourses(list)
     }
     return delay({ code: 0, data: list })
+  },
+
+  updateCourseFields(id, fields) {
+    const list = loadCourses()
+    const i = list.findIndex((c) => c.id === id)
+    if (i < 0) return delay({ code: 1, msg: '课程不存在' })
+    Object.keys(fields).forEach((k) => { list[i][k] = fields[k] })
+    saveCourses(list)
+    return delay({ code: 0, data: list, msg: '课表已更新：' + list[i].name })
   },
 
   deleteCourse(id) {

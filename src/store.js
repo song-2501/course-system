@@ -54,6 +54,24 @@ export async function selectCourse(course) {
   return res
 }
 
+export async function updateCourseFields(id, fields) {
+  submitting.value = true
+  const res = await mockApi.updateCourseFields(id, fields)
+  submitting.value = false
+  await loadCourses()
+  toast(res.msg, res.code === 0 ? 'success' : 'error')
+  return res
+}
+
+export async function removeCourse(id) {
+  submitting.value = true
+  const res = await mockApi.deleteCourse(id)
+  submitting.value = false
+  await loadCourses()
+  toast('课程已从课表移除', res.code === 0 ? 'success' : 'error')
+  return res
+}
+
 export async function dropCourse(course) {
   submitting.value = true
   const res = await mockApi.dropCourse(course.id, currentUser.value.id)
