@@ -120,19 +120,41 @@ const nextWeek = () => { if (currentWeek.value < TOTAL_WEEKS) currentWeek.value+
 
 const visibleList = computed(() => (isAdmin.value ? courses.value : myCourses.value))
 
-const weekCount = computed(() => {
+// 按「当前周 + 时段」预建索引：切换周次或课程变化时重建一次（O(N)），
+// 之后每个格子取课为 O(1)，替代原先 35 个格子各自全量过滤的 O(35×N)
+const cellIndex = computed(() => {
   const w = currentWeek.value
-  return visibleList.value.filter((c) => w >= c.startWeek && w <= c.endWeek).length
+  const map = new Map()
+  for (const c of visibleList.value) {
+    if (w < c.startWeek || w > c.endWeek) continue
+    const key = c.day * 5 + c.period
+    const bucket = map.get(key)
+    if (bucket) bucket.push(c)
+    else map.set(key, [c])
+  }
+  return map
 })
 
+const EMPTY_CELL = []
+
 function cellCourses(d, p) {
-  const w = currentWeek.value
-  return visibleList.value.filter((c) => c.day === d && c.period === p && w >= c.startWeek && w <= c.endWeek)
+  return cellIndex.value.get(d * 5 + p) || EMPTY_CELL
 }
 
-const assignableCourses = computed(() =>
-  courses.value.filter((c) => !(c.day === assign.day && c.period === assign.period))
-)
+const weekCount = computed(() => {
+  let n = 0
+  for (const bucket of cellIndex.value.values()) n += bucket.length
+  return n
+})
+
+// 排课候选：用集合排除目标时段已占用的课程，避免逐项比较时段字段
+const assignableCourses = computed(() => {
+  const occupied = new Set()
+  for (const c of courses.value) {
+    if (c.day === assign.day && c.period === assign.period) occupied.add(c.id)
+  }
+  return courses.value.filter((c) => !occupied.has(c.id))
+})
 
 function onBlockClick(c) {
   if (isAdmin.value) openEdit(c)
@@ -180,17 +202,15 @@ async function removeFromSchedule() {
   if (res.code === 0) edit.show = false
 }
 
+// 导出复用 cellIndex，按格子直接取课，避免 35 轮全量过滤
 function exportSchedule() {
-  const list = visibleList.value
   const w = currentWeek.value
   const lines = [(isAdmin.value ? '课程池总览' : '我的课程表') + ' · 第 ' + w + ' 周', '========================']
   for (let d = 0; d < 7; d++) {
     for (let p = 0; p < 5; p++) {
-      list.forEach((c) => {
-        if (c.day === d && c.period === p && w >= c.startWeek && w <= c.endWeek) {
-          lines.push(WEEK_DAYS[d] + ' ' + PERIODS[p] + '  ' + c.name + '（' + c.teacher + ' @' + c.room + '）')
-        }
-      })
+      for (const c of cellCourses(d, p)) {
+        lines.push(WEEK_DAYS[d] + ' ' + PERIODS[p] + '  ' + c.name + '（' + c.teacher + ' @' + c.room + '）')
+      }
     }
   }
   const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' })

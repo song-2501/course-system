@@ -58,15 +58,22 @@ watch(keyword, (val) => {
   timer = setTimeout(() => { debounced.value = val }, 300)
 })
 
+// 检索关键词预归一化，避免在每行过滤时重复 trim/toLowerCase
+const normalizedKw = computed(() => debounced.value.trim().toLowerCase())
+
 const filteredCourses = computed(() => {
-  const kw = debounced.value.trim().toLowerCase()
+  const kw = normalizedKw.value
   if (!kw) return courses.value
   return courses.value.filter(
     (c) => c.name.toLowerCase().includes(kw) || c.teacher.toLowerCase().includes(kw)
   )
 })
 
-const isSelected = (c) => c.selectedIds.indexOf(currentUser.value.id) >= 0
+// 已选课程 id 集合：一次构建 O(K)，每行判断已选降为 O(1)，
+// 替代原先每行对 selectedIds 数组做 indexOf 的 O(N×M) 查找
+const selectedIdSet = computed(() => new Set(myCourses.value.map((c) => c.id)))
+
+const isSelected = (c) => selectedIdSet.value.has(c.id)
 const isFull = (c) => c.selectedIds.length >= c.capacity
 
 function onDrop(c) {
