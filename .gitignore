@@ -33,5 +33,9 @@ Thumbs.db
 .env
 .env.*
 
+# Office 临时锁文件（Word/Excel 打开文档时产生，不应入库）
+~$*
+*.tmp
+
 # 幻灯片构建工作区（含中间产物与配图缓存）
 PPT/
