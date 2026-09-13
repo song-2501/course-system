@@ -6,6 +6,8 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 
 // https://vite.dev/config/
 export default defineConfig({
+  // GitHub Pages 项目站点部署，资源路径使用仓库名作为 base
+  base: '/course-system/',
   plugins: [
     vue(),
     vueDevTools(),
